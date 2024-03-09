@@ -1,0 +1,2 @@
+class Dfa(object):
+    pass
