@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "redfa"
+version = "0.1.0"
+description = "My attempt to figure out how DFAs parse regex."
+authors = ["RenoirTan <renoirtan2005@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
