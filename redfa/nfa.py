@@ -20,7 +20,8 @@ class Nfa(object):
         return self.starts_.copy()
     
     def transition(self, state: int, transition: Transition) -> t.Set[int]:
-        return self.transitions_.get(state, dict()).get(transition, set())
+        default_out = {state} if type(transition) == NonCharTransition else set()
+        return self.transitions_.get(state, dict()).get(transition, default_out)
     
     def epsilon_closure(self, srcs: t.Set[int]) -> t.Set[int]:
         """

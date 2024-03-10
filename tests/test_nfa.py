@@ -6,7 +6,7 @@ from redfa.transition import NonCharTransition
 def test_nfa_0():
     states = set(range(9))
     transitions = {
-        0: {NonCharTransition.START: {0}, NonCharTransition.EPSILON: {1, 7}},
+        0: {NonCharTransition.EPSILON: {1, 7}},
         1: {NonCharTransition.EPSILON: {2, 4}},
         2: {"a": {3}},
         3: {NonCharTransition.EPSILON: {6}},
@@ -28,7 +28,7 @@ def test_nfa_0():
 def make_nfa_1():
     states = set(range(16))
     transitions = {
-        0: {NonCharTransition.START: {0}, NonCharTransition.EPSILON: {1, 9}},
+        0: {NonCharTransition.EPSILON: {1, 9}},
         1: {"a": {2}},
         2: {NonCharTransition.EPSILON: {3, 5}},
         3: {"a": {4}},
