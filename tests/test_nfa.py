@@ -67,3 +67,34 @@ def test_nfa_1_no_epsilon():
     assert find(nfa, "c") is None
     assert find(nfa, "baab") == (1, 4)
     assert find(nfa, "acb") is None
+
+
+def make_nfa_2():
+    # (11)*(00|10)*
+    # test case from https://www.geeksforgeeks.org/conversion-of-epsilon-nfa-to-nfa/
+    states = {0, 1, 2, 3, 4}
+    starts = {0}
+    transitions = {
+        0: {NonCharTransition.EPSILON: {2}, "1": {1}},
+        1: {"1": {0}},
+        2: {"0": {3}, "1": {4}},
+        3: {"0": {2}},
+        4: {"0": {2}},
+    }
+    accepts = {2}
+    return Nfa(states, transitions, accepts, starts)
+
+
+def test_nfa_2():
+    nfa = make_nfa_2()
+    
+    assert find(nfa, "") == (0, 0)
+    assert find(nfa, "111111") == (0, 6)
+    assert find(nfa, "1100") == (0, 4)
+    # i thought it should be (1, 5) but expected behaviour is actually (0, 0)
+    # try it using python's re module
+    assert find(nfa, "01010") == (0, 0)
+
+
+if __name__ == "__main__":
+    test_nfa_2()

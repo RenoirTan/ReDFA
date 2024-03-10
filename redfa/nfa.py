@@ -138,11 +138,10 @@ class NfaTraveller(object):
 
 
 def find(nfa: Nfa, text: str) -> t.Tuple[int, int] | None:
-    for start_index in range(len(text)):
+    for start_index in range(len(text) + 1):
         traveller = NfaTraveller(nfa)
         traveller.travel(text[start_index:], start=(start_index == 0))
         length = traveller.length()
         if length is not None:
             return start_index, length + start_index
     return None
-    
