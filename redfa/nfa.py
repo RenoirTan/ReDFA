@@ -77,12 +77,13 @@ class Nfa(object):
         for state, transitions in new_transitions.items():
             transitions.pop(NonCharTransition.EPSILON, None)
 
-        # remove all non-accept state with no transitions FROM it
+        # remove all non-accept states with no transitions FROM it
         new_transitions = {
             s: t for s, t in new_transitions.items()
             if s in self.accepts_ or len(t) >= 1
         }
         
+        # remove discrepancies
         new_states = set(new_transitions.keys())
         # remove states from transitions that have disappeared
         for state, transitions in new_transitions.items():

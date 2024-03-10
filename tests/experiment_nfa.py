@@ -47,7 +47,21 @@ def make_nfa_2():
     accepts = {3}
     return Nfa(states, transitions, accepts, starts)
 
-nfa = make_nfa_1()
+def make_nfa_3():
+    # test case from https://www.geeksforgeeks.org/conversion-of-epsilon-nfa-to-nfa/
+    states = {0, 1, 2, 3, 4}
+    starts = {0}
+    transitions = {
+        0: {NonCharTransition.EPSILON: {2}, "1": {1}},
+        1: {"1": {0}},
+        2: {"0": {3}, "1": {4}},
+        3: {"0": {2}},
+        4: {"0": {2}},
+    }
+    accepts = {2}
+    return Nfa(states, transitions, accepts, starts)
+
+nfa = make_nfa_3()
 
 nfa_x = nfa.without_epsilon_transitions()
 print("<-- States -->")
