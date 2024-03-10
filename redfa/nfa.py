@@ -22,6 +22,34 @@ class Nfa(object):
     def transition(self, state: int, transition: Transition) -> t.Set[int]:
         return self.transitions_.get(state, dict()).get(transition, set())
     
+    def epsilon_closure(self, srcs: t.Set[int]) -> t.Set[int]:
+        """
+        Get the set of states reachable from the states in `srcs` via only
+        epsilon transitions.
+        """
+        frontier = srcs.copy()
+        # Don't revisit these states
+        visited = set()
+        while True:
+            # Visit unvisited states in the frontier
+            frontier -= visited
+            # No more to check, exit
+            if len(frontier) <= 0:
+                break
+            # Get next set of states after epsilon transition, store in dest
+            dests = self.transition_states(frontier, NonCharTransition.EPSILON)
+            # Mark frontier as visited
+            visited |= frontier
+            # Use dests as the next frontier, this is the recursive step
+            frontier = dests
+        return srcs | visited
+    
+    def transition_states(self, states: t.Set[int], transition: Transition) -> t.Set[int]:
+        dests = set()
+        for state in states:
+            dests |= self.transition(state, transition)
+        return dests
+    
     def accepts(self, state: int) -> bool:
         return state in self.accepts_
     
@@ -40,23 +68,15 @@ class NfaTraveller(object):
         self.history_: t.List[t.Tuple[t.Set[int], int]] = [({nfa.start()}, 0)]
     
     def consume_epsilon(self):
-        frontier = self.nfa_.epsilonable_states(self.history_[-1][0])
-        visited = set()
-        while True:
-            frontier -= visited
-            if len(frontier) <= 0:
-                break
-            dests = set()
-            for state in frontier:
-                dests |= self.nfa_.transition(state, NonCharTransition.EPSILON)
-            visited |= frontier
-            frontier = dests
-        self.history_[-1] = (self.history_[-1][0] | visited, self.history_[-1][1])
+        """
+        If the current states have epsilon transitions, add the destinations to
+        the set of current states. Do this recursively.
+        """
+        srcs = self.history_[-1][0]
+        self.history_[-1] = (self.nfa_.epsilon_closure(srcs), self.history_[-1][1])
     
     def consume(self, transition: Transition) -> bool:
-        dests: t.Set[int] = set()
-        for state in self.history_[-1][0]:
-            dests |= self.nfa_.transition(state, transition)
+        dests = self.nfa_.transition_states(self.history_[-1][0], transition)
         if len(dests) <= 0:
             return False
         substr_len = self.history_[-1][1]
