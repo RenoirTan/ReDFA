@@ -36,6 +36,17 @@ def make_nfa_1():
     start = {0}
     return Nfa(states, transitions, accepts, start)
 
+def make_nfa_2():
+    states = {0, 1, 2, 3}
+    starts = {0}
+    transitions = {
+        0: {NonCharTransition.EPSILON: {2}, "a": {1}},
+        1: {"b": {3}},
+        2: {"b": {3}},
+    }
+    accepts = {3}
+    return Nfa(states, transitions, accepts, starts)
+
 nfa = make_nfa_1()
 
 nfa_x = nfa.without_epsilon_transitions()

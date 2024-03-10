@@ -56,8 +56,12 @@ class Nfa(object):
     
     def without_epsilon_transitions(self) -> "Nfa":
         # any states that can be reached from any starting state via only
-        # epsilon captures should also be starting states
+        # epsilon closures should also be starting states
         new_starts = self.epsilon_closure(self.starting_states())
+        
+        # any destination states that can be reached from a source state
+        # including via epsilon-only transitions, should also have a directed
+        # edge from src to dest
         new_transitions: t.Dict[int, t.Dict[Transition, t.Set[int]]] = {}
         for state in self.states_:
             ts: t.Dict[Transition, t.Set[int]] = {}
@@ -69,26 +73,14 @@ class Nfa(object):
                 dests = self.epsilon_closure(dests)
                 ts[transition] = dests
 
-        # remove states with only epsilon transitions FROM it
-        new_transitions = {
-            s: t for s, t in new_transitions.items()
-            if not (len(t) == 1 and NonCharTransition.EPSILON in t)
-        }
-        # also remove non-accept states with only epsilon transitions TO it
-        new_states = set(new_transitions.keys())
-        removeable_states: t.Set[int] = set()
-        safe_states: t.Set[int] = (self.accepts_ | self.starts_) & new_states
-        print(f"{safe_states=}")
+        # remove all epsilon transitions
         for state, transitions in new_transitions.items():
-            for transition, dests in transitions.items():
-                if transition == NonCharTransition.EPSILON:
-                    removeable_states |= dests - safe_states
-                else:
-                    safe_states |= dests
-                    removeable_states -= safe_states
+            transitions.pop(NonCharTransition.EPSILON, None)
+
+        # remove all non-accept state with no transitions FROM it
         new_transitions = {
             s: t for s, t in new_transitions.items()
-            if s not in removeable_states
+            if s in self.accepts_ or len(t) >= 1
         }
         
         new_states = set(new_transitions.keys())
