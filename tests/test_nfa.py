@@ -25,9 +25,7 @@ def test_nfa_0():
     assert find(nfa, "ca") == (1, 2)
 
 
-# https://cyberzhg.github.io/toolbox/nfa2dfa?regex=KGErYiopKmEoYXxiKQ==
-# (a+b*)*a(a|b)
-def test_nfa_1():
+def make_nfa_1():
     states = set(range(16))
     transitions = {
         0: {NonCharTransition.START: {0}, NonCharTransition.EPSILON: {1, 9}},
@@ -48,7 +46,22 @@ def test_nfa_1():
     }
     accepts = {15}
     start = {0}
-    nfa = Nfa(states, transitions, accepts, start)
+    return Nfa(states, transitions, accepts, start)
+
+
+# https://cyberzhg.github.io/toolbox/nfa2dfa?regex=KGErYiopKmEoYXxiKQ==
+# (a+b*)*a(a|b)
+def test_nfa_1():
+    nfa = make_nfa_1()
+    
+    assert find(nfa, "aabab") == (0, 5)
+    assert find(nfa, "c") is None
+    assert find(nfa, "baab") == (1, 4)
+    assert find(nfa, "acb") is None
+
+
+def test_nfa_1_no_epsilon():
+    nfa = make_nfa_1().without_epsilon_transitions()
     
     assert find(nfa, "aabab") == (0, 5)
     assert find(nfa, "c") is None

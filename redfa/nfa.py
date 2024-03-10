@@ -53,13 +53,39 @@ class Nfa(object):
     def accepts(self, state: int) -> bool:
         return state in self.accepts_
     
-    def epsilonable_states(self, states: t.Set[int]) -> t.Set[int]:
+    def without_epsilon_transitions(self) -> "Nfa":
+        # any states that can be reached from any starting state via only
+        # epsilon captures should also be starting states
+        new_starts = self.epsilon_closure(self.starting_states())
+        new_transitions: t.Dict[int, t.Dict[Transition, t.Set[int]]] = {}
+        for state in self.states_:
+            ts: t.Dict[Transition, t.Set[int]] = {}
+            new_transitions[state] = ts
+            if state not in self.transitions_:
+                continue
+            for transition, dests in self.transitions_[state].items():
+                # get all reachable states including after epsilon transitions
+                dests = self.epsilon_closure(dests)
+                ts[transition] = dests
+        # remove states with only epsilon transitions FROM it
+        new_transitions = {
+            s: t for s, t in new_transitions.items()
+            if not (len(t) == 1 and NonCharTransition.EPSILON in t)
+        }
+        new_states = set(new_transitions.keys())
+        # remove states from transitions that have disappeared
+        for state, transitions in new_transitions.items():
+            for transition in transitions.keys():
+                transitions[transition] &= new_states
+        new_starts &= new_states
+        new_accepts = self.accepts_ & new_states
+        return Nfa(
+            states=new_states,
+            transitions=new_transitions,
+            accepts=new_accepts,
+            starts=new_starts
+        )
 
-        def state_has_epsilon(state: int) -> bool:
-            return len(self.transition(state, NonCharTransition.EPSILON)) >= 1
-        
-        return set(filter(state_has_epsilon, states))
-    
 
 # copied from https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton#Example
 class NfaTraveller(object):
