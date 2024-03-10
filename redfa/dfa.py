@@ -1,6 +1,6 @@
 import typing as t
 
-from redfa.transition import Transition, text_to_transition
+from redfa.transition import NonCharTransition, Transition, text_to_transition
 
 
 class Dfa(object):
@@ -23,7 +23,8 @@ class Dfa(object):
         if state not in self.states_:
             return None
         edges = self.transitions_.get(state, dict())
-        dest = edges.get(transition)
+        default_out = state if type(transition) == NonCharTransition else None
+        dest = edges.get(transition, default_out)
         return dest
     
     def accepts(self, state: int) -> bool:

@@ -6,7 +6,7 @@ def test_dfa_0():
     # /(a|b)*a/
     states = {0, 1, 2}
     transitions = {
-        0: {NonCharTransition.START: 0, "a": 1, "b": 2},
+        0: {"a": 1, "b": 2},
         1: {"a": 1, "b": 2},
         2: {"a": 1, "b": 2}
     }
