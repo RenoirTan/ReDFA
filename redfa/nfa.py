@@ -9,15 +9,15 @@ class Nfa(object):
         states: t.Set[int],
         transitions: t.Dict[int, t.Dict[Transition, t.Set[int]]],
         accepts: t.Set[int],
-        start: int
+        starts: t.Set[int]
     ) -> None:
         self.states_ = states
         self.transitions_ = transitions
         self.accepts_ = accepts
-        self.start_ = start
+        self.starts_ = starts
     
-    def start(self) -> int:
-        return self.start_
+    def starting_states(self) -> t.Set[int]:
+        return self.starts_.copy()
     
     def transition(self, state: int, transition: Transition) -> t.Set[int]:
         return self.transitions_.get(state, dict()).get(transition, set())
@@ -65,7 +65,7 @@ class Nfa(object):
 class NfaTraveller(object):
     def __init__(self, nfa: Nfa) -> None:
         self.nfa_ = nfa
-        self.history_: t.List[t.Tuple[t.Set[int], int]] = [({nfa.start()}, 0)]
+        self.history_: t.List[t.Tuple[t.Set[int], int]] = [(nfa.starting_states(), 0)]
     
     def consume_epsilon(self):
         """

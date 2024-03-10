@@ -16,7 +16,7 @@ def test_nfa_0():
         7: {"a": {8}}
     }
     accepts = {8}
-    start = 0
+    start = {0}
     nfa = Nfa(states, transitions, accepts, start)
     
     assert find(nfa, "a") == (0, 1)
@@ -47,7 +47,7 @@ def test_nfa_1():
         14: {NonCharTransition.EPSILON: {15}}
     }
     accepts = {15}
-    start = 0
+    start = {0}
     nfa = Nfa(states, transitions, accepts, start)
     
     assert find(nfa, "aabab") == (0, 5)
