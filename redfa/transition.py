@@ -4,7 +4,8 @@ import typing as t
 
 class NonCharTransition(Enum):
     START = 0
-    END = 1
+    END = 1,
+    EPSILON = 2
 
 
 Transition: t.TypeAlias = str | NonCharTransition
