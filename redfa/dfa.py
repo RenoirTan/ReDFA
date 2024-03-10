@@ -60,7 +60,7 @@ class DfaTraveller(object):
 
 
 def find(dfa: Dfa, text: str) -> t.Tuple[int, int] | None:
-    for start_index in range(len(text)):
+    for start_index in range(len(text) + 1):
         traveller = DfaTraveller(dfa)
         traveller.travel(text[start_index:], start=(start_index == 0))
         length = traveller.length()
