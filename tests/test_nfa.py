@@ -96,5 +96,14 @@ def test_nfa_2():
     assert find(nfa, "01010") == (0, 0)
 
 
+def test_nfa_2_no_epsilon():
+    nfa = make_nfa_2().without_epsilon_transitions()
+    
+    assert find(nfa, "") == (0, 0)
+    assert find(nfa, "111111") == (0, 6)
+    assert find(nfa, "1100") == (0, 4)
+    assert find(nfa, "01010") == (0, 0)
+
+
 if __name__ == "__main__":
     test_nfa_2()
