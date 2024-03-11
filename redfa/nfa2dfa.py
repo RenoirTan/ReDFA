@@ -6,6 +6,7 @@ from redfa.transition import NonCharTransition, Transition
 
 
 def nfa2dfa(nfa: Nfa) -> Dfa:
+    nfa = nfa.without_deadends()
     
     def set_to_tuple(s: t.Set[int]) -> t.Tuple[int, ...]:
         l = list(s)

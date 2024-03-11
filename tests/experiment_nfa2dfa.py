@@ -7,5 +7,7 @@ from tests.experiments import make_nfa
 x = int(sys.argv[1]) if len(sys.argv) >= 2 else 1
 
 nfa = make_nfa(x)()
+pprint(nfa.asdict())
+
 dfa = nfa2dfa(nfa)
 pprint(dfa.asdict())

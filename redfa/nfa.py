@@ -87,6 +87,15 @@ class Nfa(object):
     def accepts(self, state: int) -> bool:
         return state in self.accepts_
     
+    def remove_unregistered_states(self) -> "Nfa":
+        self.accepts_ &= self.states_
+        self.starts_ &= self.states_
+        self.transitions_ = {
+            s: {t: ds & self.states_ for t, ds in transitions.items()}
+            for s, transitions in self.transitions_.items() if s in self.states_
+        }
+        return self
+    
     def remove_epsilon_transitions(self) -> "Nfa":
         """
         Convert this NFA-e into an NFA. This mutates and returns the current
@@ -116,10 +125,62 @@ class Nfa(object):
         # remove epsilon transitions
         for state, transitions in self.transitions_.items():
             transitions.pop(NonCharTransition.EPSILON, None)
-        return self
+        return self.remove_deadends()
+    
+    def remove_unreachable(self) -> "Nfa":
+        """
+        Remove states that cannot be reached from a starting state.
+        """
+        visited: t.Set[int] = set()
+        queue: t.List[int] = list(self.starting_states())
+        # quick and easy bfs
+        while len(queue) >= 1:
+            state = queue.pop(0)
+            visited.add(state)
+            more: t.Set[int] = set()
+            for dests in self.transitions_.get(state, dict()).values():
+                more |= dests
+            more -= visited
+            queue.extend(more)
+        self.states_ = visited
+        return self.remove_unregistered_states()
+    
+    def remove_deadends(self) -> "Nfa":
+        """
+        Remove starting states if they never lead to an accept state.
+        """
+        deadends: t.Set[int] = set()
+        for start in self.starting_states():
+            visited: t.Set[int] = set()
+            queue: t.List[int] = [start]
+            # quick and easy bfs
+            while len(queue) >= 1:
+                state = queue.pop(0)
+                if self.accepts(state):
+                    break
+                visited.add(state)
+                more: t.Set[int] = set()
+                for dests in self.transitions_.get(state, dict()).values():
+                    more |= dests
+                more -= visited
+                queue.extend(more)
+            else: # while loop breaks when an accept node is found
+                continue
+            deadends.add(start)
+        self.starts_ = deadends
+        return self.remove_unreachable()
+    
+    def without_unregistered_states(self) -> "Nfa":
+        return self.copy().remove_unregistered_states()
     
     def without_epsilon_transitions(self) -> "Nfa":
         return self.copy().remove_epsilon_transitions()
+    
+    def without_unreachable(self) -> "Nfa":
+        return self.copy().remove_unreachable()
+    
+    def without_deadends(self) -> "Nfa":
+        return self.copy().remove_deadends()
 
 
 # copied from https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton#Example
