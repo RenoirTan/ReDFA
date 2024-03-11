@@ -21,7 +21,7 @@ def make_nfa_0():
 
 
 def make_nfa_1():
-    # (a|b)*a(a|b)
+    # (a+b*)*a(a|b)
     states = set(range(16))
     transitions = {
         0: {NonCharTransition.EPSILON: {1, 9}},
@@ -73,7 +73,6 @@ def make_nfa_3():
 
 
 def make_nfa_4():
-    # 
     states = {0, 1, 2, 3}
     starts = {0}
     transitions = {

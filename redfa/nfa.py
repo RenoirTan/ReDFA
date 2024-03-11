@@ -51,6 +51,12 @@ class Nfa(object):
             dests |= self.transition(state, transition)
         return dests
     
+    def available_transitions(self, states: t.Set[int]) -> t.Set[Transition]:
+        transitions: t.Set[Transition] = set()
+        for state in states:
+            transitions |= set(self.transitions_.get(state, dict()).keys())
+        return transitions
+    
     def accepts(self, state: int) -> bool:
         return state in self.accepts_
     

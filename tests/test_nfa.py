@@ -1,6 +1,6 @@
 from redfa.nfa import Nfa, find
 from redfa.transition import NonCharTransition
-from tests.experiments import make_nfa_0, make_nfa_1, make_nfa_2
+from tests.experiments import make_nfa_0, make_nfa_1, make_nfa_2, make_nfa_3, make_nfa_4
 
 
 # https://cyberzhg.github.io/toolbox/regex2nfa?regex=KGF8YikqYQ==
@@ -36,6 +36,24 @@ def test_nfa_1_no_epsilon():
 def test_nfa_2():
     nfa = make_nfa_2()
     
+    assert find(nfa, "aaaa") is None
+    assert find(nfa, "baa") == (0, 1)
+    assert find(nfa, "aaab") == (2, 4)
+    assert find(nfa, "bab") == (0, 1)
+
+
+def test_nfa_2_no_epsilon():
+    nfa = make_nfa_2().without_epsilon_transitions()
+    
+    assert find(nfa, "aaaa") is None
+    assert find(nfa, "baa") == (0, 1)
+    assert find(nfa, "aaab") == (2, 4)
+    assert find(nfa, "bab") == (0, 1)
+
+
+def test_nfa_3():
+    nfa = make_nfa_3()
+    
     assert find(nfa, "") == (0, 0)
     assert find(nfa, "111111") == (0, 6)
     assert find(nfa, "1100") == (0, 4)
@@ -44,8 +62,8 @@ def test_nfa_2():
     assert find(nfa, "01010") == (0, 0)
 
 
-def test_nfa_2_no_epsilon():
-    nfa = make_nfa_2().without_epsilon_transitions()
+def test_nfa_3_no_epsilon():
+    nfa = make_nfa_3().without_epsilon_transitions()
     
     assert find(nfa, "") == (0, 0)
     assert find(nfa, "111111") == (0, 6)
@@ -54,4 +72,4 @@ def test_nfa_2_no_epsilon():
 
 
 if __name__ == "__main__":
-    test_nfa_2()
+    test_nfa_3()
