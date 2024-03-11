@@ -1,8 +1,11 @@
 from pprint import pprint
+import sys
 
-from tests.experiments import make_nfa_1
+from tests.experiments import make_nfa
 
-nfa = make_nfa_1()
+x = int(sys.argv[1]) if len(sys.argv) >= 2 else 1
+
+nfa = make_nfa(x)()
 
 nfa_x = nfa.without_epsilon_transitions()
 print("<-- States -->")

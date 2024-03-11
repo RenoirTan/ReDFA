@@ -1,3 +1,5 @@
+import typing as t
+
 from redfa.nfa import Nfa
 from redfa.transition import NonCharTransition
 
@@ -80,3 +82,9 @@ def make_nfa_4():
     }
     accepts = {1, 3}
     return Nfa(states, transitions, accepts, starts)
+
+
+def make_nfa(index: int) -> t.Callable[[], Nfa]:
+    if not (type(index) == int and 0 <= index <= 4):
+        raise ValueError("index must be between 0 and 4")
+    return eval(f"make_nfa_{index}")
