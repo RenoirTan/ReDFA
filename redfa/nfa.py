@@ -17,6 +17,24 @@ class Nfa(object):
         self.accepts_ = accepts
         self.starts_ = starts
     
+    def __repr__(self) -> str:
+        return (
+            "Nfa(" +
+            f"states={self.states_}, " +
+            f"transitions={self.transitions_}, " +
+            f"accepts={self.accepts_}, " +
+            f"start={self.starts_}" +
+            ")"
+        )
+    
+    def asdict(self) -> t.Dict[str, t.Any]:
+        return {
+            "states": self.states_,
+            "transitions": self.transitions_,
+            "accepts": self.accepts_,
+            "starts": self.starts_
+        }
+    
     def copy(self) -> "Nfa":
         return Nfa(
             states=self.states_.copy(),

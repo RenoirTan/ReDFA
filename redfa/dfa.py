@@ -1,3 +1,4 @@
+from pprint import pformat
 import typing as t
 
 from redfa.transition import NonCharTransition, Transition, text_to_transition
@@ -15,6 +16,24 @@ class Dfa(object):
         self.transitions_ = transitions
         self.accepts_ = accepts
         self.start_ = start
+    
+    def __repr__(self) -> str:
+        return (
+            "Dfa(" +
+            f"states={self.states_}, " +
+            f"transitions={self.transitions_}, " +
+            f"accepts={self.accepts_}, " +
+            f"start={self.start_}" +
+            ")"
+        )
+    
+    def asdict(self) -> t.Dict[str, t.Any]:
+        return {
+            "states": self.states_,
+            "transitions": self.transitions_,
+            "accepts": self.accepts_,
+            "start": self.start_
+        }
     
     def start(self) -> int:
         return self.start_
