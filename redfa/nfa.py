@@ -97,10 +97,7 @@ class Nfa(object):
                     self.starts_.add(epsilon_state)
         # remove epsilon transitions
         for state, transitions in self.transitions_.items():
-            self.transitions_[state] = {
-                t: d for t, d in transitions.items()
-                if t != NonCharTransition.EPSILON
-            }
+            transitions.pop(NonCharTransition.EPSILON, None)
         return self
     
     def without_epsilon_transitions(self) -> "Nfa":
