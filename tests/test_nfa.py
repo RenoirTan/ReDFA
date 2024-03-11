@@ -1,6 +1,5 @@
-from redfa.nfa import Nfa, find
-from redfa.transition import NonCharTransition
-from tests.experiments import make_nfa_0, make_nfa_1, make_nfa_2, make_nfa_3, make_nfa_4
+from redfa.nfa import find
+from tests.experiments import make_nfa_0, make_nfa_1, make_nfa_2, make_nfa_3
 
 
 # https://cyberzhg.github.io/toolbox/regex2nfa?regex=KGF8YikqYQ==
