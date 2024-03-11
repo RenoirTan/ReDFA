@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pprint import pformat
 import typing as t
 
@@ -35,6 +36,14 @@ class Dfa(object):
             "start": self.start_
         }
     
+    def copy(self) -> "Dfa":
+        return Dfa(
+            states=self.states_.copy(),
+            transitions=deepcopy(self.transitions_),
+            accepts=self.accepts_.copy(),
+            start=self.start_
+        )
+    
     def start(self) -> int:
         return self.start_
     
@@ -48,6 +57,34 @@ class Dfa(object):
     
     def accepts(self, state: int) -> bool:
         return state in self.accepts_
+    
+    def remove_unregistered_states(self) -> "Dfa":
+        if self.start_ not in self.states_:
+            raise ValueError("start not in states")
+        self.accepts_ &= self.states_
+        self.transitions_ = {
+            s: {t: d for t, d in transitions.items() if d in self.states_}
+            for s, transitions in self.transitions_.items() if s in self.states_
+        }
+        return self
+    
+    def remove_unreachable_states(self) -> "Dfa":
+        visited: t.Set[int] = set()
+        queue: t.List[int] = [self.start_]
+        while len(visited) >= 1:
+            state = queue.pop(0)
+            visited.add(state)
+            for d in self.transitions_.get(state, dict()).values():
+                if d not in visited:
+                    queue.append(d)
+        self.states_ = visited
+        return self.remove_unregistered_states()
+
+    def without_unregistered_states(self) -> "Dfa":
+        return self.copy().remove_unregistered_states()
+    
+    def without_unreachable_states(self) -> "Dfa":
+        return self.copy().remove_unreachable_states()
 
 
 class DfaTraveller(object):
