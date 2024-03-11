@@ -1,3 +1,4 @@
+from copy import deepcopy
 import typing as t
 
 from redfa.transition import NonCharTransition, Transition, text_to_transition
@@ -15,6 +16,14 @@ class Nfa(object):
         self.transitions_ = transitions
         self.accepts_ = accepts
         self.starts_ = starts
+    
+    def copy(self) -> "Nfa":
+        return Nfa(
+            states=self.states_.copy(),
+            transitions=deepcopy(self.transitions_),
+            accepts=self.accepts_.copy(),
+            starts=self.starts_.copy()
+        )
     
     def starting_states(self) -> t.Set[int]:
         return self.starts_.copy()
@@ -60,57 +69,42 @@ class Nfa(object):
     def accepts(self, state: int) -> bool:
         return state in self.accepts_
     
-    def without_epsilon_transitions(self) -> "Nfa":
-        # any states that can be reached from any starting state via only
-        # epsilon closures should also be starting states
-        new_starts = self.epsilon_closure(self.starting_states())
-        
-        # any destination states that can be reached from a source state
-        # including via epsilon-only transitions, should also have a directed
-        # edge from src to dest
-        new_transitions: t.Dict[int, t.Dict[Transition, t.Set[int]]] = {}
+    def remove_epsilon_transitions(self) -> "Nfa":
+        """
+        Convert this NFA-e into an NFA. This mutates and returns the current
+        object. To create a new NFA from this NFA-e object, see
+        `Nfa.without_epsilon_transitions`.
+        """
         for state in self.states_:
-            ts: t.Dict[Transition, t.Set[int]] = {}
-            new_transitions[state] = ts
             if state not in self.transitions_:
-                continue
-            for transition, dests in self.transitions_[state].items():
-                # get all reachable states including after epsilon transitions
-                dests = self.epsilon_closure(dests)
-                ts[transition] = dests
-                
-        # get all non-accept states with only epsilon transitions from them
-        only_epsilon_nas: t.Set[int] = set()
-        for state, transitions in new_transitions.items():
-            if state in self.accepts_:
-                continue
-            if len(transitions) == 1 and NonCharTransition.EPSILON in transitions:
-                only_epsilon_nas.add(state)
-
-        # remove all epsilon transitions
-        for state, transitions in new_transitions.items():
-            transitions.pop(NonCharTransition.EPSILON, None)
-
-        # remove all non-accept states with no transitions FROM it
-        new_transitions = {
-            s: t for s, t in new_transitions.items()
-            if s not in only_epsilon_nas
-        }
-        
-        # remove discrepancies
-        new_states = set(new_transitions.keys())
-        # remove states from transitions that have disappeared
-        for state, transitions in new_transitions.items():
-            for transition in transitions.keys():
-                transitions[transition] &= new_states
-        new_starts &= new_states
-        new_accepts = self.accepts_ & new_states
-        return Nfa(
-            states=new_states,
-            transitions=new_transitions,
-            accepts=new_accepts,
-            starts=new_starts
-        )
+                self.transitions_[state] = {}
+            epsilon_states = self.epsilon_closure({state})
+            for epsilon_state in epsilon_states:
+                if state == epsilon_state:
+                    continue
+                # replay non-epsilon transitions of epsilon_state on state
+                for transition, dests in self.transitions_.get(epsilon_state, dict()).items():
+                    if transition == NonCharTransition.EPSILON:
+                        continue
+                    if transition not in self.transitions_[state]:
+                        self.transitions_[state][transition] = set()
+                    self.transitions_[state][transition] |= dests
+                # set state as accept if epsilon_state is accept
+                if self.accepts(epsilon_state):
+                    self.accepts_.add(state)
+                # set epsilon_state as start if state is start
+                if state in self.starts_:
+                    self.starts_.add(epsilon_state)
+        # remove epsilon transitions
+        for state, transitions in self.transitions_.items():
+            self.transitions_[state] = {
+                t: d for t, d in transitions.items()
+                if t != NonCharTransition.EPSILON
+            }
+        return self
+    
+    def without_epsilon_transitions(self) -> "Nfa":
+        return self.copy().remove_epsilon_transitions()
 
 
 # copied from https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton#Example
