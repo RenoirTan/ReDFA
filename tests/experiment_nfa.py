@@ -1,8 +1,8 @@
 from pprint import pprint
 
-from tests.experiments import make_nfa_3
+from tests.experiments import make_nfa_4
 
-nfa = make_nfa_3()
+nfa = make_nfa_4()
 
 nfa_x = nfa.without_epsilon_transitions()
 print("<-- States -->")

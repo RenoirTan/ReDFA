@@ -78,6 +78,14 @@ class Nfa(object):
                 # get all reachable states including after epsilon transitions
                 dests = self.epsilon_closure(dests)
                 ts[transition] = dests
+                
+        # get all non-accept states with only epsilon transitions from them
+        only_epsilon_nas: t.Set[int] = set()
+        for state, transitions in new_transitions.items():
+            if state in self.accepts_:
+                continue
+            if len(transitions) == 1 and NonCharTransition.EPSILON in transitions:
+                only_epsilon_nas.add(state)
 
         # remove all epsilon transitions
         for state, transitions in new_transitions.items():
@@ -86,7 +94,7 @@ class Nfa(object):
         # remove all non-accept states with no transitions FROM it
         new_transitions = {
             s: t for s, t in new_transitions.items()
-            if s in self.accepts_ or len(t) >= 1
+            if s not in only_epsilon_nas
         }
         
         # remove discrepancies
