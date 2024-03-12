@@ -7,7 +7,15 @@ from redfa.token import tokenize, SpecialToken, Token
 from redfa.transition import NonCharTransition, Transition
 
 
+__all__ = ["ThompsonParser", "thompson"]
+
+
 def _empty_expression() -> Nfa:
+    """
+    Create an NFA with one epsilon transition from 0 to 1, with 0 being the
+    start and 1 being an accept state. This expression is particularly useful
+    for building an expression with an optional skip.
+    """
     return Nfa(
         states={0, 1},
         transitions={0: {NonCharTransition.EPSILON: {1}}},
@@ -17,6 +25,9 @@ def _empty_expression() -> Nfa:
 
 
 def _symbol_expression(char: Transition) -> Nfa:
+    """
+    Create an NFA where `char` is a transition from state 0 to state 1.
+    """
     return Nfa(
         states={0, 1},
         transitions={0: {char: {1}}},
@@ -26,6 +37,9 @@ def _symbol_expression(char: Transition) -> Nfa:
 
 
 def _kleene_plus_expression(expression: Nfa) -> Nfa:
+    """
+    Convert `expression` into a kleene plus expression.
+    """
     if len(expression.starts_) != 1 or len(expression.accepts_) != 1:
         raise ValueError("expression must have only one accept state and one start state.")
     expression = expression.copy()
@@ -41,14 +55,23 @@ def _kleene_plus_expression(expression: Nfa) -> Nfa:
 
 
 def _kleene_star_expression(expression: Nfa) -> Nfa:
+    """
+    Convert `expression` into a kleene star expression.
+    """
     return _optional_expression(_kleene_plus_expression(expression))
 
 
 def _optional_expression(expression: Nfa) -> Nfa:
+    """
+    Convert `expression` into an optional expression.
+    """
     return _join_nfa(_empty_expression(), expression, 0, 1)
 
 
 def _union_expression(expressions: t.Iterable[Nfa]) -> Nfa:
+    """
+    Create a "branched" expression from `expressions`.
+    """
     primary = Nfa(
         states={0, 1},
         transitions={},
@@ -61,6 +84,11 @@ def _union_expression(expressions: t.Iterable[Nfa]) -> Nfa:
 
 
 def _concatenate_nfa(primary: Nfa, secondary: Nfa) -> Nfa:
+    """
+    Add secondary to primary, such that the starting state of secondary becomes
+    the accepting state of primary. This function requires that primary and
+    secondary each have only one accept state and one start state.
+    """
     if (
         len(primary.starts_) != 1 or
         len(primary.accepts_) != 1 or
@@ -142,11 +170,14 @@ def _join_nfa(primary: Nfa, secondary: Nfa, start: int, end: int) -> Nfa:
 
 
 def _nothing() -> Nfa:
+    """
+    Create an empty expression.
+    """
     return Nfa(
         states={0},
         transitions={},
         accepts={0},
-        starts={1}
+        starts={0}
     )
 
 
@@ -157,6 +188,12 @@ class ThompsonParser(object):
         self.token_used: bool = False
     
     def grab_if_used(self) -> bool:
+        """
+        Grab a token from the tokeniser, if the token has already been used
+        during one of the parsing steps. If successful, this function returns
+        True and guarantees that the current token has been used before. If
+        it fails, False is returned.
+        """
         if self.token_used or self.current_token is None:
             try:
                 self.current_token = next(self.tokenizer)
@@ -166,6 +203,9 @@ class ThompsonParser(object):
         return True
     
     def parse_char(self) -> Nfa | None:
+        """
+        Parse character.
+        """
         if not self.grab_if_used():
             return None
         if type(self.current_token) == str:
@@ -174,6 +214,9 @@ class ThompsonParser(object):
         return None
     
     def parse_round_bracket(self) -> Nfa | None:
+        """
+        Parse round bracket expressions, including those with pipes in them.
+        """
         if not self.grab_if_used():
             return None
         # check if current expression starts with (
@@ -209,12 +252,18 @@ class ThompsonParser(object):
         return _union_expression(expressions)
     
     def parse_basic(self) -> Nfa | None:
+        """
+        Parse "atomic" expressions, like characters and brackets.
+        """
         expression = self.parse_char()
         if expression is not None:
             return expression
         return self.parse_round_bracket()
     
     def parse_kleene(self) -> Nfa | None:
+        """
+        Add additional data onto an expression.
+        """
         expression = self.parse_basic()
         if expression is None:
             return None
@@ -233,6 +282,9 @@ class ThompsonParser(object):
             return expression
     
     def parse_expression(self) -> Nfa | None:
+        """
+        Parse one expression.
+        """
         expressions: t.List[Nfa] = []
         while True:
             expression = self.parse_kleene()
@@ -245,6 +297,10 @@ class ThompsonParser(object):
 
 
 def thompson(regex: str) -> Nfa | None:
+    """
+    Create an NFA using Thompson's Construction. Returns None if nothing is
+    parsed.
+    """
     parser = ThompsonParser(tokenize(regex))
     nfa = parser.parse_expression()
     if nfa is None:
