@@ -41,7 +41,11 @@ def _kleene_plus_expression(expression: Nfa) -> Nfa:
 
 
 def _kleene_star_expression(expression: Nfa) -> Nfa:
-    return _join_nfa(_empty_expression(), _kleene_plus_expression(expression), 0, 1)
+    return _optional_expression(_kleene_plus_expression(expression))
+
+
+def _optional_expression(expression: Nfa) -> Nfa:
+    return _join_nfa(_empty_expression(), expression, 0, 1)
 
 
 def _union_expression(expressions: t.Iterable[Nfa]) -> Nfa:
@@ -222,6 +226,9 @@ class ThompsonParser(object):
         elif self.current_token == SpecialToken.Plus:
             self.token_used = True
             return _kleene_plus_expression(expression)
+        elif self.current_token == SpecialToken.Question:
+            self.token_used = True
+            return _optional_expression(expression)
         else:
             return expression
     

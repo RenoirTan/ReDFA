@@ -8,9 +8,10 @@ class SpecialToken(Enum):
     CloseRoundBracket = 2
     Pipe = 3
     Caret = 4
-    Dollar = 5,
-    Star = 6,
+    Dollar = 5
+    Star = 6
     Plus = 7
+    Question = 8
 
 
 Token: t.TypeAlias = str | SpecialToken
@@ -26,6 +27,7 @@ SPECIALS: t.Dict[str, t.Tuple[Token, Token]] = {
     "$": (SpecialToken.Dollar, "$"),
     "*": (SpecialToken.Star, "*"),
     "+": (SpecialToken.Plus, "+"),
+    "?": (SpecialToken.Question, "?"),
 }
 SPECIAL_CHARS = set(SPECIALS.keys())
 
