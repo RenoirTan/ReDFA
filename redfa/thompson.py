@@ -241,10 +241,7 @@ class ThompsonParser(object):
             expressions.append(expression)
         if len(expressions) <= 0:
             return None
-        big_one = expressions[0]
-        for expression in expressions[1:]:
-            big_one = _concatenate_nfa(big_one, expression)
-        return big_one
+        return reduce(_concatenate_nfa, expressions)
 
 
 def thompson(regex: str) -> Nfa | None:
