@@ -10,12 +10,14 @@ class Nfa(object):
         states: t.Set[int],
         transitions: t.Dict[int, t.Dict[Transition, t.Set[int]]],
         accepts: t.Set[int],
-        starts: t.Set[int]
+        starts: t.Set[int],
+        groups: t.List[t.Tuple[int, int]] | None = None
     ) -> None:
         self.states_ = states
         self.transitions_ = transitions
         self.accepts_ = accepts
         self.starts_ = starts
+        self.groups_ = groups or []
     
     def __repr__(self) -> str:
         return (
@@ -23,7 +25,8 @@ class Nfa(object):
             f"states={self.states_}, " +
             f"transitions={self.transitions_}, " +
             f"accepts={self.accepts_}, " +
-            f"start={self.starts_}" +
+            f"start={self.starts_}, " +
+            f"groups={self.groups_}" +
             ")"
         )
     
@@ -32,7 +35,8 @@ class Nfa(object):
             "states": self.states_,
             "transitions": self.transitions_,
             "accepts": self.accepts_,
-            "starts": self.starts_
+            "starts": self.starts_,
+            "groups": self.groups_
         }
     
     def copy(self) -> "Nfa":
@@ -40,7 +44,8 @@ class Nfa(object):
             states=self.states_.copy(),
             transitions=deepcopy(self.transitions_),
             accepts=self.accepts_.copy(),
-            starts=self.starts_.copy()
+            starts=self.starts_.copy(),
+            groups=self.groups_.copy()
         )
     
     def starting_states(self) -> t.Set[int]:

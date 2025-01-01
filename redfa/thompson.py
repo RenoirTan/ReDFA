@@ -20,7 +20,8 @@ def _empty_expression() -> Nfa:
         states={0, 1},
         transitions={0: {NonCharTransition.EPSILON: {1}}},
         accepts={1},
-        starts={0}
+        starts={0},
+        groups=[]
     )
 
 
@@ -32,7 +33,8 @@ def _symbol_expression(char: Transition) -> Nfa:
         states={0, 1},
         transitions={0: {char: {1}}},
         accepts={1},
-        starts={0}
+        starts={0},
+        groups=[]
     )
 
 
@@ -76,11 +78,23 @@ def _union_expression(expressions: t.Iterable[Nfa]) -> Nfa:
         states={0, 1},
         transitions={},
         accepts={1},
-        starts={0}
+        starts={0},
+        groups=[]
     )
     for expression in expressions:
         _join_nfa(primary, expression, 0, 1)
     return primary
+
+
+def _grouped_expression(expression: Nfa) -> Nfa:
+    """
+    Make this expression grouped. Assumes one start and one accept.
+    """
+    start = next(iter(expression.starts_))
+    accept = next(iter(expression.accepts_))
+    if (start, accept) not in expression.groups_:
+        expression.groups_.insert(0, (start, accept))
+    return expression
 
 
 def _concatenate_nfa(primary: Nfa, secondary: Nfa) -> Nfa:
@@ -110,9 +124,15 @@ def _concatenate_nfa(primary: Nfa, secondary: Nfa) -> Nfa:
             t: set(map(offsetter, ds)) for t, ds in transitions.items()
         }
     
-    # convert all references to primary.accepts_ to secondary.starts_
+    # link primary.accepts_ to secondary.starts_
     start = offsetter(next(iter(secondary.starts_)))
     accept = next(iter(primary.accepts_))
+    if accept not in primary.transitions_:
+        primary.transitions_[accept] = {}
+    if NonCharTransition.EPSILON not in primary.transitions_[accept]:
+        primary.transitions_[accept][NonCharTransition.EPSILON] = set()
+    primary.transitions_[accept][NonCharTransition.EPSILON].add(start)
+    """
     if start not in primary.transitions_:
         primary.transitions_[start] = {}
     for transition, dests in primary.transitions_.pop(accept, dict()).items():
@@ -124,9 +144,13 @@ def _concatenate_nfa(primary: Nfa, secondary: Nfa) -> Nfa:
             if accept in dests:
                 dests.discard(accept)
                 dests.add(start)
+    """
     
     # set secondary.accepts_ as primary.accepts_
     primary.accepts_ = set(map(offsetter, secondary.accepts_))
+    
+    # add groups from secondary to primary
+    primary.groups_.extend(((offsetter(s), offsetter(a)) for s, a in secondary.groups_))
     
     return primary
 
@@ -166,6 +190,9 @@ def _join_nfa(primary: Nfa, secondary: Nfa, start: int, end: int) -> Nfa:
         primary.transitions_[accept][NonCharTransition.EPSILON] = set()
     primary.transitions_[accept][NonCharTransition.EPSILON].add(end)
     
+    # add groups from secondary to primary
+    primary.groups_.extend(((offsetter(s), offsetter(a)) for s, a in secondary.groups_))
+    
     return primary
 
 
@@ -177,7 +204,8 @@ def _nothing() -> Nfa:
         states={0},
         transitions={},
         accepts={0},
-        starts={0}
+        starts={0},
+        groups=[]
     )
 
 
@@ -191,7 +219,7 @@ class ThompsonParser(object):
         """
         Grab a token from the tokeniser, if the token has already been used
         during one of the parsing steps. If successful, this function returns
-        True and guarantees that the current token has been used before. If
+        True and guarantees that the current token has not been used before. If
         it fails, False is returned.
         """
         if self.token_used or self.current_token is None:
@@ -249,7 +277,7 @@ class ThompsonParser(object):
                 expressions.append(expression)
         
         # join all the or clauses together
-        return _union_expression(expressions)
+        return _grouped_expression(_union_expression(expressions))
     
     def parse_basic(self) -> Nfa | None:
         """
