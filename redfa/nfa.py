@@ -1,14 +1,53 @@
+from collections import defaultdict
 from copy import deepcopy
 import typing as t
 
 from redfa.transition import NonCharTransition, Transition, text_to_transition
 
 
+Transitions = t.Dict[int, t.Dict[Transition, t.Set[int]]]
+
+
+def transition_of(transitions: Transitions, state: int, transition: Transition) -> t.Set[int]:
+    default_out = {state} if type(transition) == NonCharTransition else set()
+    return transitions.get(state, dict()).get(transition, default_out)
+
+
+def transition_states_of(
+    transitions: Transitions,
+    states: t.Set[int],
+    transition: Transition
+) -> t.Set[int]:
+    dests = set()
+    for state in states:
+        dests |= transition_of(transitions, state, transition)
+    return dests
+
+
+def epsilon_closure_of(transitions: Transitions, srcs: t.Set[int]) -> t.Set[int]:
+    frontier = srcs.copy()
+    # Don't revisit these states
+    visited = set()
+    while True:
+        # Visit unvisited states in the frontier
+        frontier -= visited
+        # No more to check, exit
+        if len(frontier) <= 0:
+            break
+        # Get next set of states after epsilon transition, store in dest
+        dests = transition_states_of(transitions, frontier, NonCharTransition.EPSILON)
+        # Mark frontier as visited
+        visited |= frontier
+        # Use dests as the next frontier, this is the recursive step
+        frontier = dests
+    return srcs | visited
+
+
 class Nfa(object):
     def __init__(
         self,
         states: t.Set[int],
-        transitions: t.Dict[int, t.Dict[Transition, t.Set[int]]],
+        transitions: Transitions,
         accepts: t.Set[int],
         starts: t.Set[int],
         groups: t.List[t.Tuple[int, int]] | None = None
@@ -18,6 +57,7 @@ class Nfa(object):
         self.accepts_ = accepts
         self.starts_ = starts
         self.groups_ = groups or []
+        self.reversed_transitions_: Transitions | None = None
     
     def __repr__(self) -> str:
         return (
@@ -52,36 +92,17 @@ class Nfa(object):
         return self.starts_.copy()
     
     def transition(self, state: int, transition: Transition) -> t.Set[int]:
-        default_out = {state} if type(transition) == NonCharTransition else set()
-        return self.transitions_.get(state, dict()).get(transition, default_out)
+        return transition_of(self.transitions_, state, transition)
     
     def epsilon_closure(self, srcs: t.Set[int]) -> t.Set[int]:
         """
         Get the set of states reachable from the states in `srcs` via only
         epsilon transitions.
         """
-        frontier = srcs.copy()
-        # Don't revisit these states
-        visited = set()
-        while True:
-            # Visit unvisited states in the frontier
-            frontier -= visited
-            # No more to check, exit
-            if len(frontier) <= 0:
-                break
-            # Get next set of states after epsilon transition, store in dest
-            dests = self.transition_states(frontier, NonCharTransition.EPSILON)
-            # Mark frontier as visited
-            visited |= frontier
-            # Use dests as the next frontier, this is the recursive step
-            frontier = dests
-        return srcs | visited
+        return epsilon_closure_of(self.transitions_, srcs)
     
     def transition_states(self, states: t.Set[int], transition: Transition) -> t.Set[int]:
-        dests = set()
-        for state in states:
-            dests |= self.transition(state, transition)
-        return dests
+        return transition_states_of(self.transitions_, states, transition)
     
     def available_transitions(self, states: t.Set[int]) -> t.Set[Transition]:
         transitions: t.Set[Transition] = set()
@@ -186,12 +207,27 @@ class Nfa(object):
     
     def without_deadends(self) -> "Nfa":
         return self.copy().remove_deadends()
+    
+    def reversed_transitions(self) -> Transitions:
+        if self.reversed_transitions_ is not None:
+            return self.reversed_transitions_
+        self.reversed_transitions_ = {}
+        for s, transitions in self.transitions_.items():
+            for t, ds in transitions.items():
+                for d in ds:
+                    if d not in self.reversed_transitions_:
+                        self.reversed_transitions_[d] = {}
+                    if t not in self.reversed_transitions_[d]:
+                        self.reversed_transitions_[d][t] = set()
+                    self.reversed_transitions_[d][t].add(s)
+        return self.reversed_transitions_
 
 
 # copied from https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton#Example
 class NfaTraveller(object):
     def __init__(self, nfa: Nfa) -> None:
         self.nfa_ = nfa
+        self.text_: str | None = None
         self.history_: t.List[t.Tuple[t.Set[int], int]] = [(nfa.starting_states(), 0)]
     
     def consume_epsilon(self):
@@ -213,6 +249,7 @@ class NfaTraveller(object):
         return True
     
     def travel(self, text: str, *, start: bool = True):
+        self.text_ = text
         self.consume_epsilon()
         for transition in text_to_transition(text, start=start):
             if not self.consume(transition):
@@ -224,6 +261,80 @@ class NfaTraveller(object):
             if any(map(lambda s: self.nfa_.accepts(s), states)):
                 return substr_len
         return None
+    
+    def find_index_of_history_with_accept(self) -> int | None:
+        for i in range(len(self.history_)-1, 0, -1):
+            if any((self.nfa_.accepts(s) for s in self.history_[i][0])):
+                return i
+        return None
+    
+    def possible_trail(self) -> t.List[t.Set[int]] | None:
+        assert self.text_ is not None
+        latest_good_index = self.find_index_of_history_with_accept()
+        if latest_good_index is None:
+            return None
+        last_frontier, length = self.history_[latest_good_index]
+        journey = [(last_frontier & self.nfa_.accepts_, length)]
+        reversed_transitions = self.nfa_.reversed_transitions()
+        # pprint.pprint(trail)
+        for i in range(latest_good_index-1, 0, -1):
+            frontier = epsilon_closure_of(reversed_transitions, journey[0][0])
+            journey.insert(0, (frontier & self.history_[i+1][0], journey[0][1]))
+            transition_idx = self.history_[i][1]
+            if transition_idx >= length:
+                continue
+            prev_frontier = transition_states_of(
+                reversed_transitions,
+                frontier,
+                self.text_[transition_idx]
+            )
+            # pprint.pprint((prev_frontier, self.history_[i][0]))
+            journey.insert(0, (prev_frontier & self.history_[i][0], transition_idx))
+        else:
+            frontier = epsilon_closure_of(reversed_transitions, journey[0][0])
+            journey.insert(0, (frontier & self.history_[0][0], journey[0][1]))
+        # consolidate trail
+        trail = []
+        for frontier, index in journey:
+            if index < len(trail):
+                trail[index] |= frontier
+            elif index == len(trail):
+                trail.append(frontier.copy())
+            else:
+                raise ValueError("tf just happened")
+        return trail
+    
+    def find_groups(
+        self,
+        span_end: int,
+        *,
+        offset: int = 0
+    ) -> t.Dict[t.Tuple[int, int], t.List[t.Tuple[int, int]]]:
+        """
+        Get a dictionary of matches for groups defined in the NFA.
+        The keys are tuples of 2 integers, the first being the start node and
+        the second being the accept node that defines the group.
+        The values are the start index and (end index + 1) of the substring
+        matched to that group.
+        """
+        result = defaultdict(list)
+        group_starts = {s for s, _ in self.nfa_.groups_}
+        group_accepts = {a for _, a in self.nfa_.groups_}
+        assert len(group_starts & group_accepts) == 0
+        s_to_a = {s: a for s, a in self.nfa_.groups_}
+        a_to_s = {a: s for s, a in self.nfa_.groups_}
+        for index, frontier in enumerate((self.possible_trail() or [])):
+            for a in frontier & group_accepts:
+                s = a_to_s[a]
+                b, _ = result[s, a][-1]
+                result[s, a][-1] = b, offset + index
+            for s in frontier & group_starts:
+                a = s_to_a[s]
+                result[s, a].append((offset + index, None))
+        return {
+            g: [m for m in ms if m[1] is not None]
+            for g, ms in result.items()
+        }
 
 
 def find(nfa: Nfa, text: str) -> t.Tuple[int, int] | None:
@@ -233,4 +344,30 @@ def find(nfa: Nfa, text: str) -> t.Tuple[int, int] | None:
         length = traveller.length()
         if length is not None:
             return start_index, length + start_index
+    return None
+
+
+class NfaMatch(object):
+    def __init__(
+        self,
+        string: str,
+        span: t.Tuple[int, int],
+        groups: t.Dict[t.Tuple[int, int], t.List[t.Tuple[int, int]]]
+    ) -> None:
+        self.string_ = string
+        self.span_ = span
+        self.groups_ = groups
+
+
+def match(nfa: Nfa, text: str) -> NfaMatch | None:
+    for start_index in range(len(text) + 1):
+        traveller = NfaTraveller(nfa)
+        traveller.travel(text[start_index:], start=(start_index == 0))
+        length = traveller.length()
+        if length is not None:
+            return NfaMatch(
+                string=text,
+                span=(start_index, length + start_index),
+                groups=traveller.find_groups(length + start_index, offset=start_index)
+            )
     return None
