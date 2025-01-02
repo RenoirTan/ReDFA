@@ -269,20 +269,35 @@ class NfaTraveller(object):
         return None
     
     def possible_trail(self) -> t.List[t.Set[int]] | None:
+        """
+        Get a list of set of possible states that the automaton could have been
+        at such that the the automaton would be at an accept state at the end of
+        the captured substring.
+        """
         assert self.text_ is not None
         latest_good_index = self.find_index_of_history_with_accept()
         if latest_good_index is None:
             return None
         last_frontier, length = self.history_[latest_good_index]
+        # last state in the trail
         journey = [(last_frontier & self.nfa_.accepts_, length)]
         reversed_transitions = self.nfa_.reversed_transitions()
-        # pprint.pprint(trail)
         for i in range(latest_good_index-1, 0, -1):
+            # get the possible states that led to the next trail
+            # via epsilon transitions
             frontier = epsilon_closure_of(reversed_transitions, journey[0][0])
             journey.insert(0, (frontier & self.history_[i+1][0], journey[0][1]))
+            
             transition_idx = self.history_[i][1]
+            
+            # if the character was not used, skip to the next character
+            # (transition_idx >= length) is just one of the possible causes
+            # of this
             if transition_idx >= length:
                 continue
+            
+            # get set of states that could have led to the current set of states
+            # with the character given
             prev_frontier = transition_states_of(
                 reversed_transitions,
                 frontier,
@@ -291,9 +306,12 @@ class NfaTraveller(object):
             # pprint.pprint((prev_frontier, self.history_[i][0]))
             journey.insert(0, (prev_frontier & self.history_[i][0], transition_idx))
         else:
+            # epsilon closure on starting states
             frontier = epsilon_closure_of(reversed_transitions, journey[0][0])
             journey.insert(0, (frontier & self.history_[0][0], journey[0][1]))
         # consolidate trail
+        # at each character index, find the states the Nfa should have been at
+        # that would have led to an accept state at the end
         trail = []
         for frontier, index in journey:
             if index < len(trail):
@@ -316,41 +334,35 @@ class NfaTraveller(object):
         The values are the start index and (end index + 1) of the substring
         matched to that group.
         """
-        result = defaultdict(list)
-        group_starts = {s for s, _ in self.nfa_.groups_}
-        group_accepts = {a for _, a in self.nfa_.groups_}
-        assert len(group_starts & group_accepts) == 0
-        s_to_a = {s: a for s, a in self.nfa_.groups_}
-        a_to_s = {a: s for s, a in self.nfa_.groups_}
-        is_group_closed = {s: True for s in group_starts}
-        for index, frontier in enumerate((self.possible_trail() or [])):
-            # close groups where possible
-            illegal_a = set()
-            for a in frontier & group_accepts:
-                s = a_to_s[a]
-                if is_group_closed[s]:
-                    continue
-                b, _ = result[s, a][-1]
-                result[s, a][-1] = b, offset + index
-                is_group_closed[s] = True
-                illegal_a.add(a)
-            for s in frontier & group_starts:
-                if not is_group_closed[s]:
-                    raise ValueError("Cannot open new group if previous not closed yet")
-                a = s_to_a[s]
-                result[s, a].append((offset + index, None))
-                is_group_closed[s] = False
-            for a in (frontier & group_accepts) - illegal_a:
-                s = a_to_s[a]
-                if is_group_closed[s]:
-                    continue
-                b, _ = result[s, a][-1]
-                result[s, a][-1] = b, offset + index
-                is_group_closed[s] = True
-        return {
-            g: [m for m in ms if m[1] is not None]
-            for g, ms in result.items()
-        }
+        trail = self.possible_trail()
+        if not trail:
+            return {}
+        result = {}
+        for group in self.nfa_.groups_:
+            s, a = group
+            spans: t.List[t.Tuple[int, int]] = []
+            closed = True
+            for i, frontier in enumerate(trail):
+                def new_span():
+                    nonlocal closed
+                    if s in frontier:
+                        spans.append((i, -1))
+                        closed = False
+                
+                def close_span():
+                    nonlocal closed
+                    if a in frontier:
+                        b, _ = spans[-1]
+                        spans[-1] = b, i
+                        closed = True
+                if closed:
+                    new_span() # create a new span if previous span closed
+                    close_span()
+                else:
+                    close_span() # otherwise close previous span first
+                    new_span()
+            result[group] = spans
+        return result
 
 
 def find(nfa: Nfa, text: str) -> t.Tuple[int, int] | None:
