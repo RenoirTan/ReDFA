@@ -306,7 +306,6 @@ class NfaTraveller(object):
     
     def find_groups(
         self,
-        span_end: int,
         *,
         offset: int = 0
     ) -> t.Dict[t.Tuple[int, int], t.List[t.Tuple[int, int]]]:
@@ -323,14 +322,31 @@ class NfaTraveller(object):
         assert len(group_starts & group_accepts) == 0
         s_to_a = {s: a for s, a in self.nfa_.groups_}
         a_to_s = {a: s for s, a in self.nfa_.groups_}
+        is_group_closed = {s: True for s in group_starts}
         for index, frontier in enumerate((self.possible_trail() or [])):
+            # close groups where possible
+            illegal_a = set()
             for a in frontier & group_accepts:
                 s = a_to_s[a]
+                if is_group_closed[s]:
+                    continue
                 b, _ = result[s, a][-1]
                 result[s, a][-1] = b, offset + index
+                is_group_closed[s] = True
+                illegal_a.add(a)
             for s in frontier & group_starts:
+                if not is_group_closed[s]:
+                    raise ValueError("Cannot open new group if previous not closed yet")
                 a = s_to_a[s]
                 result[s, a].append((offset + index, None))
+                is_group_closed[s] = False
+            for a in (frontier & group_accepts) - illegal_a:
+                s = a_to_s[a]
+                if is_group_closed[s]:
+                    continue
+                b, _ = result[s, a][-1]
+                result[s, a][-1] = b, offset + index
+                is_group_closed[s] = True
         return {
             g: [m for m in ms if m[1] is not None]
             for g, ms in result.items()
@@ -359,7 +375,9 @@ class NfaMatch(object):
         self.groups_ = groups
 
 
+# traveller = None
 def match(nfa: Nfa, text: str) -> NfaMatch | None:
+    # global traveller
     for start_index in range(len(text) + 1):
         traveller = NfaTraveller(nfa)
         traveller.travel(text[start_index:], start=(start_index == 0))
@@ -368,6 +386,6 @@ def match(nfa: Nfa, text: str) -> NfaMatch | None:
             return NfaMatch(
                 string=text,
                 span=(start_index, length + start_index),
-                groups=traveller.find_groups(length + start_index, offset=start_index)
+                groups=traveller.find_groups(offset=start_index)
             )
     return None

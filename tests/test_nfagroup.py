@@ -39,5 +39,5 @@ def test_nfagroup_3():
     m = nfa.match(r, "abcdefabefabcdcdef")
     assert m is not None
     assert get_groups_from_match(m) == [
-        "abcdcdef", "abcdef", "abef", "cd", "cd", "cd", "cd", "cdcd"
+        "", "abcdcdef", "abcdef", "abef", "cd", "cd", "cd", "cd", "cdcd"
     ]

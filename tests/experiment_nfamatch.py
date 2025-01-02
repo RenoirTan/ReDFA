@@ -3,7 +3,7 @@ from pprint import pprint
 from redfa import nfa
 from redfa.thompson import thompson
 
-p = r"(ab(cd)*ef)+"
+p = r"(ab((cd)*)ef)+"
 # p = r"(a+b*)*a(a|b)"
 # p = r"(aa)*aab"
 r = thompson(p)
