@@ -1,3 +1,5 @@
+import re
+
 from redfa.thompson import thompson
 from redfa import nfa
 
@@ -48,3 +50,21 @@ def test_nfagroup_3():
         ["cd", "", "cdcd"],
         ["cd", "cd", "cd"]
     ]
+
+
+def test_nfagroupparity_0():
+    p = r"(ab(cd)ef)(gh(ij)kl)"
+    t = "abcdefghijkl"
+    mine = my_match(p, t)
+    stdlib = re.match(p, t)
+    assert mine is not None and stdlib is not None
+    assert mine.latest_captures()[1:] == list(stdlib.groups())
+
+
+def test_nfagroupparity_1():
+    p = r"(ab((cd)*)ef)+"
+    t = "abcdefabefabcdcdef"
+    mine = my_match(p, t)
+    stdlib = re.match(p, t)
+    assert mine is not None and stdlib is not None
+    assert mine.latest_captures()[1:] == list(stdlib.groups())
