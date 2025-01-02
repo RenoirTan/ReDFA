@@ -2,42 +2,49 @@ from redfa.thompson import thompson
 from redfa import nfa
 
 
-def get_groups_from_match(m: nfa.NfaMatch):
-    groups = []
-    for group_arr in m.groups_.values():
-        groups.extend(group_arr)
-    return sorted([m.string_[b:e] for b, e in groups])
+def my_match(p: str, t: str) -> nfa.NfaMatch | None:
+    r = thompson(p)
+    if r is None:
+        return None
+    return nfa.match(r, t)
+    
 
 
 def test_nfagroup_0():
-    r = thompson(r"(aa)*aab")
-    assert r is not None
-    m = nfa.match(r, "aaaab")
+    m = my_match(r"(aa)*aab", "aaaab")
     assert m is not None
-    assert get_groups_from_match(m) == ["aa"]
+    assert m.all_captures() == [
+        ["aaaab"],
+        ["aa"]
+    ]
 
 
 def test_nfagroup_1():
-    r = thompson(r"(a+b*)*a(a|b)")
-    assert r is not None
-    m = nfa.match(r, "aaaab")
+    m = my_match(r"(a+b*)*a(a|b)", "aaaab")
     assert m is not None
-    assert get_groups_from_match(m) == ["a", "a", "a", "b"]
+    assert m.all_captures() == [
+        ["aaaab"],
+        ["a", "a", "a"],
+        ["b"]
+    ]
 
 
 def test_nfagroup_2():
-    r = thompson(r"(ab(cd)*ef)+")
-    assert r is not None
-    m = nfa.match(r, "abcdefabefabcdcdef")
+    m = my_match(r"(ab(cd)*ef)+", "abcdefabefabcdcdef")
     assert m is not None
-    assert get_groups_from_match(m) == ["abcdcdef", "abcdef", "abef", "cd", "cd", "cd"]
+    assert m.all_captures() == [
+        ["abcdefabefabcdcdef"],
+        ["abcdef", "abef", "abcdcdef"],
+        ["cd", "cd", "cd"]
+    ]
 
 
 def test_nfagroup_3():
-    r = thompson(r"(ab((cd)*)ef)+")
-    assert r is not None
-    m = nfa.match(r, "abcdefabefabcdcdef")
+    m = my_match(r"(ab((cd)*)ef)+", "abcdefabefabcdcdef")
     assert m is not None
-    assert get_groups_from_match(m) == [
-        "", "abcdcdef", "abcdef", "abef", "cd", "cd", "cd", "cd", "cdcd"
+    assert m.all_captures() == [
+        ["abcdefabefabcdcdef"],
+        ["abcdef", "abef", "abcdcdef"],
+        ["cd", "", "cdcd"],
+        ["cd", "cd", "cd"]
     ]

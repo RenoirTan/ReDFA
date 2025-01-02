@@ -380,11 +380,35 @@ class NfaMatch(object):
         self,
         string: str,
         span: t.Tuple[int, int],
-        groups: t.Dict[t.Tuple[int, int], t.List[t.Tuple[int, int]]]
+        groups: t.Dict[t.Tuple[int, int], t.List[t.Tuple[int, int]]],
+        group_orderings: t.List[t.Tuple[int, int]]
     ) -> None:
         self.string_ = string
         self.span_ = span
         self.groups_ = groups
+        self.group_orderings_ = group_orderings
+    
+    def substr(self) -> str:
+        b, e = self.span_
+        return self.string_[b:e]
+    
+    def latest_captures(self) -> t.List[str]:
+        captures = [self.substr()]
+        for group in self.group_orderings_:
+            spans = self.groups_.get(group)
+            if not spans:
+                captures.append("")
+                continue
+            b, e = spans[-1]
+            captures.append(self.string_[b:e])
+        return captures
+    
+    def all_captures(self) -> t.List[t.List[str]]:
+        captures = [[self.substr()]]
+        for group in self.group_orderings_:
+            spans = self.groups_.get(group, [])
+            captures.append([self.string_[b:e] for b, e in spans])
+        return captures
 
 
 # traveller = None
@@ -398,6 +422,7 @@ def match(nfa: Nfa, text: str) -> NfaMatch | None:
             return NfaMatch(
                 string=text,
                 span=(start_index, length + start_index),
-                groups=traveller.find_groups(offset=start_index)
+                groups=traveller.find_groups(offset=start_index),
+                group_orderings=nfa.groups_.copy()
             )
     return None
