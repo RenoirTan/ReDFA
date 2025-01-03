@@ -278,16 +278,14 @@ class NfaTraveller(object):
         latest_good_index = self.find_index_of_history_with_accept()
         if latest_good_index is None:
             return None
+        reversed_transitions = self.nfa_.reversed_transitions()
         last_frontier, length = self.history_[latest_good_index]
         # last state in the trail
-        journey = [(last_frontier & self.nfa_.accepts_, length)]
-        reversed_transitions = self.nfa_.reversed_transitions()
+        journey = [(
+            epsilon_closure_of(reversed_transitions, last_frontier & self.nfa_.accepts_),
+            length
+        )]
         for i in range(latest_good_index-1, 0, -1):
-            # get the possible states that led to the next trail
-            # via epsilon transitions
-            frontier = epsilon_closure_of(reversed_transitions, journey[0][0])
-            journey.insert(0, (frontier & self.history_[i+1][0], journey[0][1]))
-            
             transition_idx = self.history_[i][1]
             
             # if the character was not used, skip to the next character
@@ -298,17 +296,16 @@ class NfaTraveller(object):
             
             # get set of states that could have led to the current set of states
             # with the character given
-            prev_frontier = transition_states_of(
+            frontier = epsilon_closure_of(
                 reversed_transitions,
-                frontier,
-                self.text_[transition_idx]
+                transition_states_of(
+                    reversed_transitions,
+                    journey[0][0], # next frontier
+                    self.text_[transition_idx]
+                ) & self.history_[i][0]
             )
             # pprint.pprint((prev_frontier, self.history_[i][0]))
-            journey.insert(0, (prev_frontier & self.history_[i][0], transition_idx))
-        else:
-            # epsilon closure on starting states
-            frontier = epsilon_closure_of(reversed_transitions, journey[0][0])
-            journey.insert(0, (frontier & self.history_[0][0], journey[0][1]))
+            journey.insert(0, ((frontier & self.history_[i][0]), transition_idx))
         # consolidate trail
         # at each character index, find the states the Nfa should have been at
         # that would have led to an accept state at the end
