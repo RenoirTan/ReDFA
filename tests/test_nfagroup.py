@@ -52,6 +52,17 @@ def test_nfagroup_3():
     ]
 
 
+def test_nfagroup_4():
+    m = my_match(r"(ab((cd)*)ef)+", "buffer abcdefabefabcdcdef buffer")
+    assert m is not None
+    assert m.all_captures() == [
+        ["abcdefabefabcdcdef"],
+        ["abcdef", "abef", "abcdcdef"],
+        ["cd", "", "cdcd"],
+        ["cd", "cd", "cd"]
+    ]
+
+
 def test_nfagroupparity_0():
     p = r"(ab(cd)ef)(gh(ij)kl)"
     t = "abcdefghijkl"

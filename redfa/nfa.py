@@ -285,7 +285,7 @@ class NfaTraveller(object):
             epsilon_closure_of(reversed_transitions, last_frontier & self.nfa_.accepts_),
             length
         )]
-        for i in range(latest_good_index-1, 0, -1):
+        for i in range(latest_good_index-1, -1, -1):
             transition_idx = self.history_[i][1]
             
             # if the character was not used, skip to the next character
@@ -343,14 +343,14 @@ class NfaTraveller(object):
                 def new_span():
                     nonlocal closed
                     if s in frontier:
-                        spans.append((i, -1))
+                        spans.append((offset + i, -1))
                         closed = False
                 
                 def close_span():
                     nonlocal closed
                     if a in frontier:
                         b, _ = spans[-1]
-                        spans[-1] = b, i
+                        spans[-1] = b, offset + i
                         closed = True
                 if closed:
                     new_span() # create a new span if previous span closed
@@ -416,6 +416,8 @@ def match(nfa: Nfa, text: str) -> NfaMatch | None:
         traveller.travel(text[start_index:], start=(start_index == 0))
         length = traveller.length()
         if length is not None:
+            print(nfa)
+            print(traveller.history_)
             return NfaMatch(
                 string=text,
                 span=(start_index, length + start_index),
