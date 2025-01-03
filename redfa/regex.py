@@ -1,6 +1,6 @@
 import typing as t
 
-from redfa.dfa import Dfa, find as dfa_find
+from redfa.dfa import Dfa, DfaMatch, find as dfa_find, match as dfa_match
 from redfa.exception import MalformedRegexError
 from redfa.nfa2dfa import nfa2dfa
 from redfa.thompson import thompson
@@ -15,6 +15,9 @@ class Regex(object):
 
     def find(self, text: str) -> t.Tuple[int, int] | None:
         return dfa_find(self.automaton, text)
+    
+    def match(self, text: str) -> DfaMatch | None:
+        return dfa_match(self.automaton, text)
 
 
 def compile(regex: str) -> Regex:

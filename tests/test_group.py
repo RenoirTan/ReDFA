@@ -1,15 +1,14 @@
 import re
 
-from redfa.thompson import thompson
-from redfa import nfa
+from redfa.dfa import DfaMatch
+from redfa.regex import compile
 
 
-def my_match(p: str, t: str) -> nfa.NfaMatch | None:
-    r = thompson(p)
+def my_match(p: str, t: str) -> DfaMatch | None:
+    r = compile(p)
     if r is None:
         return None
-    return nfa.match(r, t)
-    
+    return r.match(t)
 
 
 def test_nfagroup_0():
