@@ -63,4 +63,16 @@ def nfa2dfa(nfa: Nfa) -> Dfa:
     }
     dfa_states = set(states_mapping.values())
     
-    return Dfa(dfa_states, transitions, dfa_accepts, 0)
+    # convert nfa groups to dfa groups
+    dfa_groups = []
+    for s, a in nfa.groups_:
+        opens = set()
+        closes = set()
+        for nfa_states, dfa_state in states_mapping.items():
+            if s in nfa_states:
+                opens.add(dfa_state)
+            if a in nfa_states:
+                closes.add(dfa_state)
+        dfa_groups.append((opens, closes))
+    
+    return Dfa(dfa_states, transitions, dfa_accepts, 0, dfa_groups)
