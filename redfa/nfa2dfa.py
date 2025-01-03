@@ -62,6 +62,7 @@ def nfa2dfa(nfa: Nfa) -> Dfa:
         if any(map(lambda n: nfa.accepts(n), ns))
     }
     dfa_states = set(states_mapping.values())
+    print(states_mapping)
     
     # convert nfa groups to dfa groups
     dfa_groups = []

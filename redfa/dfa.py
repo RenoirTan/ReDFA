@@ -119,6 +119,9 @@ class DfaTraveller(object):
         return None
     
     def find_groups(self, *, offset: int = 0) -> t.List[t.List[t.Tuple[int, int]]]:
+        """
+        NOT WORKING
+        """
         result = []
         for opens, closes in self.dfa_.groups_:
             spans = []
@@ -199,6 +202,7 @@ def match(dfa: Dfa, text: str) -> DfaMatch | None:
         traveller.travel(text[start_index:], start=(start_index == 0))
         length = traveller.length()
         if length is not None:
+            print(traveller.history_)
             return DfaMatch(
                 string=text,
                 span=(start_index, length + start_index),

@@ -389,6 +389,13 @@ class NfaMatch(object):
         b, e = self.span_
         return self.string_[b:e]
     
+    def groups(self) -> t.List[t.List[t.Tuple[int, int]]]:
+        groups = []
+        for group in self.group_orderings_:
+            spans = self.groups_.get(group, [])
+            groups.append(spans)
+        return groups
+    
     def latest_captures(self) -> t.List[str]:
         captures = [self.substr()]
         for group in self.group_orderings_:

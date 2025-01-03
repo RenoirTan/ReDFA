@@ -1,10 +1,9 @@
 import re
 
-from redfa.dfa import DfaMatch
-from redfa.regex import compile
+from redfa.regex import compile, Match
 
 
-def my_match(p: str, t: str) -> DfaMatch | None:
+def my_match(p: str, t: str) -> Match | None:
     r = compile(p)
     if r is None:
         return None
