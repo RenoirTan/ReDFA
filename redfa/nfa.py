@@ -416,8 +416,6 @@ def match(nfa: Nfa, text: str) -> NfaMatch | None:
         traveller.travel(text[start_index:], start=(start_index == 0))
         length = traveller.length()
         if length is not None:
-            print(nfa)
-            print(traveller.history_)
             return NfaMatch(
                 string=text,
                 span=(start_index, length + start_index),
